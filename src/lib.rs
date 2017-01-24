@@ -45,6 +45,8 @@ pub fn run_pg() {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
+    let listen_url = env::var("LISTEN_URL")
+        .unwrap_or("0.0.0.0:8080".to_owned());
     let manager = PostgresConnectionManager::new(database_url,TlsMode::None).expect("Failed to establish connection to postgres instance");
     let pg_pool = r2d2::Pool::new(r2d2::Config::default(),manager).unwrap();
     /* let rows = pg.query("SELECT * FROM (SELECT * FROM chat_messages ORDER BY timestamp DESC LIMIT 5) as pote ORDER BY timestamp ASC;",&[]).unwrap();
@@ -65,5 +67,5 @@ pub fn run_pg() {
                     "get_messages");
     mount.mount("/api", api_handler);
 
-    let listening = Iron::new(mount).http("0.0.0.0:61480").unwrap();
+    let listening = Iron::new(mount).http(&*listen_url).unwrap();
 }
