@@ -2,9 +2,11 @@
 
 ## Build
 
+```sh
 $ echo 'DATABASE\_URL=postgres://dbuser:dbpassword@dbaddress/chatbox' > .env
 $ rustup override nightly
-$ cargo run
+$ cargo run --bin chatbix
+```
 
 ## License
 
