@@ -3,11 +3,12 @@ use std::env;
 use r2d2_postgres::PostgresConnectionManager;
 use chatbix::*;
 use std::sync::Arc;
-use iron::{mime,Iron,Chain,Response,Request,IronResult,IronError,Set,self};
+use iron::{status,mime,Iron,Chain,Response,Request,IronResult,IronError,Set,self};
 use mount::Mount;
 use router::Router;
 use super::routes;
 use persistent::Read as PerRead;
+use std::io::Write as IoWrite;
 
 extern crate bodyparser;
 
@@ -33,12 +34,20 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
     }
 
     fn catch(&self, _: &mut Request, err: IronError) -> IronResult<Response> {
+        use std::fmt::Write;
         let json_mime : mime::Mime = mime::Mime(mime::TopLevel::Application, mime::SubLevel::Json,
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
-        Err(IronError{
-            response:err.response.set(json_mime),
-            error:err.error,        
-        })
+        let mut answer : Vec<u8> = Vec::new();
+        let status_code = err.response.status.unwrap_or(status::InternalServerError);
+        
+        // this part is to allow any error to be translated JSON style.
+        write!(&mut answer,r#"{{"error":""#);
+        match err.response.body {
+            Some(mut b) => b.write_body(&mut answer),
+            None => write!(&mut answer,"{}",err.error),
+        };
+        write!(&mut answer,r#""}}"#);
+        Ok(Response::with((status_code,answer,json_mime)))
     }
 }
 
