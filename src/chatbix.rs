@@ -14,7 +14,7 @@ pub trait ChatbixInterface {
     fn new(init_params: Self::InitParams) -> Self;
 
     //fn new_message(&self, new_message: NewMessage);
-    fn get_messages(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: &[&str]) -> Vec<Message>;
+    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Vec<Message>;
 
     fn refresh_connected_users(&self) {
         
@@ -41,22 +41,22 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         }
     }
 
-    fn get_messages(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: &[&str]) -> Vec<Message> {
+    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Vec<Message> {
         let pg = self.connection.get().unwrap(); // FIXME < if this is busy this will panic, 
             // you should send error 509 instead!
         let rows = match (timestamp, timestamp_end) {
             (None,None) =>
-                pg.query("SELECT * FROM (SELECT * FROM chat_messages ORDER BY timestamp DESC LIMIT 150) as pote ORDER BY timestamp ASC;",
-                                      &[]).unwrap(),
+                pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel IS NULL OR channel = ANY ($1) ORDER BY timestamp DESC LIMIT 150) as pote ORDER BY timestamp ASC;",
+                                      &[&channels.as_ref()]).unwrap(),
             (Some(timestamp),None) =>
-                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 ORDER BY timestamp ASC;",
-                                      &[&timestamp]).unwrap(),
+                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp ASC;",
+                                      &[&timestamp,&channels.as_ref()]).unwrap(),
             (Some(timestamp),Some(timestamp_end)) =>
-                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_messages.timestamp < $2 ORDER BY timestamp ASC;",
-                                      &[&timestamp,&timestamp_end]).unwrap(),
+                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_messages.timestamp < $2 AND (channel IS NULL OR channel = ANY ($3)) ORDER BY timestamp ASC;",
+                                      &[&timestamp,&timestamp_end,&channels.as_ref()]).unwrap(),
             (None,Some(timestamp_end)) =>
-                pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_messages.timestamp < $1 ORDER BY timestamp DESC) as pote ORDER BY timestamp DESC;",
-                                      &[&timestamp_end]).unwrap(),
+                pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_messages.timestamp < $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp DESC) as pote ORDER BY timestamp ASC;",
+                                      &[&timestamp_end,&channels.as_ref()]).unwrap(),
         };
         // TODO : collect rows into Result<Vec, Err> instead,
         // so that it doesnt crash when the columns are changed (use get_opt instead of `get`)

@@ -24,8 +24,17 @@ fn timestamp_parse(t: &str) -> Result<NaiveDateTime> {
 }
 
 pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+    let mut channels : Vec<String> = Vec::new();
     let (timestamp, timestamp_end) = match req.get_ref::<UrlEncodedQuery>() {
         Ok(hashmap) => {
+            if let Some(tmp_chans) = hashmap.get("channels").and_then(|c| c.get(0)) {
+                channels = tmp_chans.split(',').map(|s:&str| s.to_owned()).collect::<Vec<String>>();
+            };
+            if let Some(tmp_chans) = hashmap.get("channel") {
+                for c in tmp_chans {
+                    channels.push(c.clone());
+                }
+            };
             match (hashmap.get("timestamp"),hashmap.get("timestamp_end")) {
                 (None,None) => {
                     (None,None)
@@ -50,7 +59,7 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
             return Err(IronError::new(body_error,(status::BadRequest)))
         },
     };
-    let messages = chatbix.get_messages(timestamp,timestamp_end,&[]);
+    let messages = chatbix.get_messages(timestamp,timestamp_end,channels);
     let json = serde_json::to_string(&messages).unwrap();
     Ok(Response::with((status::Ok,json)))
 }
