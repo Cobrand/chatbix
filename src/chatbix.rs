@@ -14,10 +14,10 @@ pub trait ChatbixInterface {
     fn new(init_params: Self::InitParams) -> Self;
 
     //fn new_message(&self, new_message: NewMessage);
-    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Vec<Message>;
+    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Result<Vec<Message>>;
 
-    fn refresh_connected_users(&self) {
-        
+    fn new_message(&self,username:&str, auth_key:Option<&str>, content:&str, color:&str, channel: &str, tags: i32) -> Result<()> {
+        unimplemented!()
     }
 }
 
@@ -25,6 +25,12 @@ pub struct Chatbix<Connection> {
     connection: Connection,
     connected_users: RwLock<VecDeque<ConnectedUser>>,
     cached_users: RwLock<CachedUsers>
+}
+
+impl<C> Chatbix<C> {
+    pub fn refresh_users(&self) {
+
+    }
 }
 
 impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
@@ -41,8 +47,8 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         }
     }
 
-    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Vec<Message> {
-        let pg = self.connection.get().unwrap(); // FIXME < if this is busy this will panic, 
+    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Result<Vec<Message>> {
+        let pg = self.connection.get().unwrap(); // FIXME < if this is busy for 30s this will panic, 
             // you should send error 509 instead!
         let rows = match (timestamp, timestamp_end) {
             (None,None) =>
@@ -60,7 +66,7 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         };
         // TODO : collect rows into Result<Vec, Err> instead,
         // so that it doesnt crash when the columns are changed (use get_opt instead of `get`)
-        rows.into_iter().map(|row|{
+        Ok(rows.into_iter().map(|row|{
             Message {
                 id: row.get("id"),
                 author: row.get("author"),
@@ -70,6 +76,6 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
                 color: row.get("color"),
                 channel: row.get("channel"),
             }
-        }).collect()
+        }).collect())
     }
 }

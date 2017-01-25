@@ -40,16 +40,16 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
                     (None,None)
                 },
                 (Some(timestamps),None) => {
-                    let timestamp = try!(iron_result(timestamp_parse(timestamps.get(0).unwrap()))); 
+                    let timestamp = chatbix_try!(timestamp_parse(timestamps.get(0).unwrap())); 
                     (Some(timestamp),None)
                 },
                 (None,Some(timestamps_end)) => {
-                    let timestamp_end = try!(iron_result(timestamp_parse(timestamps_end.get(0).unwrap())));
+                    let timestamp_end = chatbix_try!(timestamp_parse(timestamps_end.get(0).unwrap()));
                     (None,Some(timestamp_end))
                 },
                 (Some(timestamps),Some(timestamps_end)) => {
-                    let timestamp = try!(iron_result(timestamp_parse(timestamps.get(0).unwrap())));
-                    let timestamp_end = try!(iron_result(timestamp_parse(timestamps_end.get(0).unwrap())));
+                    let timestamp = chatbix_try!(timestamp_parse(timestamps.get(0).unwrap()));
+                    let timestamp_end = chatbix_try!(timestamp_parse(timestamps_end.get(0).unwrap()));
                     (Some(timestamp),Some(timestamp_end))
                 }
             }
@@ -59,7 +59,7 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
             return Err(IronError::new(body_error,(status::BadRequest)))
         },
     };
-    let messages = chatbix.get_messages(timestamp,timestamp_end,channels);
+    let messages = chatbix_try!(chatbix.get_messages(timestamp,timestamp_end,channels));
     let json = serde_json::to_string(&messages).unwrap();
     Ok(Response::with((status::Ok,json)))
 }

@@ -25,6 +25,7 @@ extern crate lazy_static;
 extern crate serde_derive;
 extern crate serde_json;
 
+#[macro_use]
 mod error;
 mod message;
 mod chatbix;
