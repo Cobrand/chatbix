@@ -10,6 +10,9 @@ mount = "^0.3"
 router = "^0.5"
 bodyparser = "^0.5"
 urlencoded = "^0.5"
+persistent = "^0.3"
+
+lazy_static = "^0.2"
 
 serde = "^0.8"
 serde_derive = "^0.8"

@@ -52,10 +52,10 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
                 pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 ORDER BY timestamp ASC;",
                                       &[&timestamp]).unwrap(),
             (Some(timestamp),Some(timestamp_end)) =>
-                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_message.timestamp < $2 ORDER BY timestamp ASC;",
+                pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_messages.timestamp < $2 ORDER BY timestamp ASC;",
                                       &[&timestamp,&timestamp_end]).unwrap(),
             (None,Some(timestamp_end)) =>
-                pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_message.timestamp < $2 ORDER BY timestamp DESC) as pote ORDER BY timestamp DESC;",
+                pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_messages.timestamp < $1 ORDER BY timestamp DESC) as pote ORDER BY timestamp DESC;",
                                       &[&timestamp_end]).unwrap(),
         };
         // TODO : collect rows into Result<Vec, Err> instead,
