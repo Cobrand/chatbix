@@ -52,6 +52,8 @@ admin commands, but this happens only when the user is an admin (of course).
 
 ### Retrieving messages
 
+Method: GET
+
 * Retrieving the last X messages : `/api/get_messages`
   (Note: X is hardcoded for now)
 * Retrieving all messages since T : `/api/get_messages?timestamp=T`
@@ -63,7 +65,7 @@ admin commands, but this happens only when the user is an admin (of course).
 
 ### Sending a new message
 
-The URI is always `/api/new_message`
+The URI is always POST `/api/new_message`
 
 The body must always be valid JSON.
 
@@ -79,9 +81,9 @@ These values are optional:
 * channel: string, name of the channel this should be sent to
 * auth\_key: string, see the section Auth Key
 
-## Logging in
+### Logging in
 
-`/api/login`
+POST `/api/login`
 
 Required values in the JSON body:
 
@@ -97,9 +99,18 @@ Returns `{"auth_key":AUTH_KEY}` on success
 The AUTH\_KEY will stay the same until the server is restarted (and thus the cache is discarded), or until you
 call `/api/logout`. This means that multiple clients can be connected with the same auth\_key.
 
-## Registering
+### Logging out
 
-`/api/register`
+POST `/api/logout`
+
+Required values:
+
+* username: string
+* auth\_key: see Auth Key
+
+### Registering
+
+POST `/api/register`
 
 Required values in the JSON body:
 
