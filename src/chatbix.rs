@@ -57,6 +57,40 @@ impl<C> Chatbix<C> {
     }
 }
 
+impl<C> Chatbix<C> where Chatbix<C>:ChatbixInterface {
+    pub fn heartbeat(&self) -> VecDeque<ConnectedUser> {
+        self.connected_users.read().unwrap().clone()
+    }
+
+    pub fn heartbeat_mut(&self, username: &str, logged_in: bool, active: bool) -> Result<VecDeque<ConnectedUser>> {
+        let now = now();
+        let mut connected_users = self.connected_users.write().unwrap();
+        let push: bool = {
+            match connected_users.iter_mut().find(|connected_user|{
+                connected_user.username == username
+            }) {
+                Some(mut c) => {
+                    if active {
+                        c.last_active = now;
+                    }
+                    c.last_answer = now;
+                    false
+                },
+                None => true
+            }
+        };
+        if push {
+            connected_users.push_back(ConnectedUser {
+                username: username.to_owned(),
+                logged_in: logged_in,
+                last_active: now,
+                last_answer: now,
+            });
+        }
+        Ok(connected_users.clone())
+    }
+}
+
 impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
 
     // TODO: change InitParams into (&'a str,TlsMode<'h>)

@@ -74,6 +74,10 @@ pub fn new_message<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<
     status.map(|_| Response::with(JsonSuccess::empty().to_string()))
 }
 
+pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
+    unimplemented!()
+}
+
 pub fn get_messages<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let mut channels : Vec<String> = Vec::new();
     let mut include_default_channel = true;

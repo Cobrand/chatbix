@@ -6,11 +6,10 @@ use rand::{thread_rng, Rng};
 
 use error::*;
 
+#[derive(Debug, Serialize, Clone)]
 pub struct ConnectedUser {
-    pub uid: u64,
     pub username: String,
     pub logged_in: bool,
-    pub admin: bool,
     pub last_active: NaiveDateTime,
     pub last_answer: NaiveDateTime,
 }
