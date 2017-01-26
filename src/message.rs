@@ -31,7 +31,7 @@ pub struct Message {
 pub struct NewMessage {
     pub author: String,
     pub content: String,
-    pub tags: i32,
+    pub tags: Option<i32>,
     pub color: Option<String>,
     pub channel: Option<String>,
     pub auth_key: Option<String>,

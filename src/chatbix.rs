@@ -62,7 +62,7 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
     fn new_message(&self, new_message: &NewMessage) -> Result<()> {
         let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
         let timestamp : NaiveDateTime = now();
-        let tags = new_message.tags & 0b000_0000_0000_0000_0000_0000_1111_1110i32; // see User.tags for more info
+        let tags : i32= new_message.tags.unwrap_or(0) & 0b000_0000_0000_0000_0000_0000_1111_1110i32; // see User.tags for more info
         pg.query("INSERT INTO chat_messages (author, timestamp, content, tags, color, channel) \
                   VALUES ($1, $2, $3, $4, $5, $6)",
                   &[&new_message.author, &timestamp, &new_message.content, &tags, &new_message.color, &new_message.channel]).unwrap();
