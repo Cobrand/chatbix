@@ -30,6 +30,8 @@ impl Into<IronResult<Response>> for Error {
                 ("invalid auth_key".to_owned(), status::Unauthorized),
             Error(ErrorKind::NoJsonBodyDetected, _) => 
                 ("no json body detected".to_owned(), status::BadRequest),
+            Error(ErrorKind::UsernameInUse, _) => 
+                ("username already taken".to_owned(), status::Conflict),
             Error(ErrorKind::MissingParameter(missing_param_name), _) =>
                 (format!("missing parameter `{}`",missing_param_name),status::UnprocessableEntity),
             Error(ErrorKind::BodyparserError(body_error),_) =>
@@ -58,6 +60,8 @@ error_chain! {
     errors {
         InvalidCredentials
         InvalidAuthKey
+        UsernameInUse
+        NotLoggedIn
         MissingParameter(s: String)
         DatabaseBusy
         NoJsonBodyDetected

@@ -44,7 +44,11 @@ tags are on 32bits:
 
 #### Auth Key
 
-Coming soon
+Auth Key describes a alphanumeric string of length 16, for instance "f4xVbuTlR9bTl0i6"
+
+It is retrieved when logging in, and can be used to confirm one's identity (to be sure that
+messages come from the owner and not some fake). It can also be used to have access to
+admin commands, but this happens only when the user is an admin (of course).
 
 ### Retrieving messages
 
@@ -74,6 +78,36 @@ These values are optional:
 * color: a value of "#RRGGBB" is expected, but it is not checked. You could input "red", "blue" or whatever as well, but don't expect it to be parsed by other clients
 * channel: string, name of the channel this should be sent to
 * auth\_key: string, see the section Auth Key
+
+## Logging in
+
+`/api/login`
+
+Required values in the JSON body:
+
+* username: string
+* password: string
+
+your password is sha512'd before entering the DB, so you can either input a hashed password or the raw password.
+Default clients will sha512 the password before sending it via this request though, so take that into account
+if you want to be compatible with other clients.
+
+Returns `{"auth_key":AUTH_KEY}` on success
+
+The AUTH\_KEY will stay the same until the server is restarted (and thus the cache is discarded), or until you
+call `/api/logout`. This means that multiple clients can be connected with the same auth\_key.
+
+## Registering
+
+`/api/register`
+
+Required values in the JSON body:
+
+* username: string
+* password: string
+
+Returns `{"auth_key":AUTH_KEY}` on success
+
 
 ## License
 

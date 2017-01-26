@@ -60,6 +60,8 @@ pub fn handler<C>(chatbix: Chatbix<C>) where Chatbix<C>: ChatbixInterface, C: Se
     
     chatbix_route!(get,"get_messages",routes::get_messages, chatbix_arc, api_handler);
     chatbix_route!(post,"new_message",routes::new_message, chatbix_arc, api_handler);
+    chatbix_route!(post,"login",routes::login, chatbix_arc, api_handler);
+    chatbix_route!(post,"register",routes::register, chatbix_arc, api_handler);
     let mut api_handler = Chain::new(api_handler);
     api_handler.link_before(PerRead::<bodyparser::MaxBodyLength>::one(1024 * 1024)); // limit size of requests to 1MB
     api_handler.link_after(ChatbixAfterMiddleware);

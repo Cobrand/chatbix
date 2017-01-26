@@ -2,6 +2,9 @@ use chrono::NaiveDateTime;
 use std::collections::HashMap;
 
 use postgres::Connection as PgConnection;
+use rand::{thread_rng, Rng};
+
+use error::*;
 
 pub struct ConnectedUser {
     pub uid: u64,
@@ -30,14 +33,30 @@ impl CachedUsers {
         CachedUsers(HashMap::new())
     }
 
-    // Maybe return a Result here ?
-    pub fn login_pg(&mut self, pg: &PgConnection, username: &str, password: &str) {
-        
+    pub fn login(&mut self, username: &str, admin: bool) -> String {
+        if self.0.contains_key(username) {
+            self.0.get(username).unwrap().auth_key.clone()
+        } else {
+            // generate new key
+            let auth_key : String = thread_rng().gen_ascii_chars().take(16).collect();
+            self.0.insert(username.to_owned(), CachedUser {auth_key: auth_key.clone(), admin: admin});
+            auth_key.clone()
+        }
     }
 
     // Maybe return a Result here?
-    pub fn logout(&mut self, username: &str, auth_key: &str) {
-
+    // return false if not connected
+    pub fn logout(&mut self, username: &str, auth_key: &str) -> Result<()> {
+        match self.0.get(username) {
+            Some(c) => {
+                if c.auth_key != auth_key {
+                    bail!(ErrorKind::InvalidAuthKey)
+                };
+            },
+            None => bail!(ErrorKind::NotLoggedIn)
+        };
+        self.0.remove(username);
+        Ok(())
     }
     
     pub fn check(&self, username: &str, auth_key: &str) -> UserConnectionStatus {

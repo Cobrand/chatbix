@@ -17,6 +17,8 @@ extern crate router;
 extern crate bodyparser;
 extern crate urlencoded;
 extern crate persistent;
+extern crate crypto;
+extern crate rand;
 
 #[macro_use]
 extern crate lazy_static;
@@ -36,9 +38,7 @@ mod handler;
 
 use dotenv::dotenv;
 use std::env;
-use std::sync::Arc;
 
-use message::Message;
 use r2d2_postgres::{TlsMode, PostgresConnectionManager};
 
 use chatbix::*;

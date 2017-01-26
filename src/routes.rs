@@ -29,13 +29,16 @@ struct JsonSuccess {
     status: &'static str,
     #[serde(skip_serializing_if="Option::is_none")]
     messages: Option<Vec<Message>>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    auth_key: Option<String>,
 }
 
 impl JsonSuccess {
     pub fn empty() -> JsonSuccess {
         JsonSuccess {
             status: "success",
-            messages: None
+            messages: None,
+            auth_key: None,
         }
     }
 
@@ -43,6 +46,15 @@ impl JsonSuccess {
         JsonSuccess {
             status: "success",
             messages: Some(v),
+            auth_key: None,
+        }
+    }
+
+    pub fn with_auth_key(auth_key: String) -> JsonSuccess {
+        JsonSuccess {
+            status: "success",
+            messages: None,
+            auth_key: Some(auth_key),
         }
     }
 
@@ -104,4 +116,32 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
     };
     let messages = chatbix_try!(chatbix.get_messages(timestamp,timestamp_end,channels,include_default_channel));
     Ok(Response::with((status::Ok,JsonSuccess::with_messages(messages).to_string())))
+}
+
+#[derive(Debug, Deserialize)]
+struct LoginPayload {
+    username: String,
+    password: String,
+}
+
+pub fn register<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+    let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<LoginPayload>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let login_payload = chatbix_try!(login_payload);
+    let auth_key = match login_payload.as_ref() {
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(p) => chatbix_try!(chatbix.register(p.username.as_str(), p.password.as_str())),
+    };
+    Ok(Response::with((status::Ok,JsonSuccess::with_auth_key(auth_key).to_string())))
+}
+
+pub fn login<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+    let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<LoginPayload>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let login_payload = chatbix_try!(login_payload);
+    let auth_key = match login_payload.as_ref() {
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(p) => chatbix_try!(chatbix.login(p.username.as_str(), p.password.as_str())),
+    };
+    Ok(Response::with((status::Ok,JsonSuccess::with_auth_key(auth_key).to_string())))
 }

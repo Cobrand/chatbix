@@ -3,6 +3,8 @@ use super::message::{NewMessage,Message};
 use super::user::{ConnectedUser,CachedUsers,UserConnectionStatus};
 use std::collections::VecDeque;
 use chrono::{NaiveDateTime,UTC};
+use crypto::digest::Digest;
+use crypto::sha2::Sha512;
 
 use error::*;
 use r2d2::{Pool,PooledConnection};
@@ -21,6 +23,12 @@ pub trait ChatbixInterface {
     fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V, include_default_channel: bool) -> Result<Vec<Message>>;
 
     fn new_message(&self, new_message: &NewMessage) -> Result<()>;
+
+    /// returns some auth_key
+    fn register(&self, username: &str, password: &str) -> Result<String>;
+
+    /// return auth_key
+    fn login(&self, username: &str, password: &str) -> Result<String>;
 }
 
 pub struct Chatbix<Connection> {
@@ -118,5 +126,43 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
                 channel: row.get("channel"),
             }
         }).collect())
+    }
+    
+    fn register(&self, username: &str, password: &str) -> Result<String> {
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        let rows = pg.query("SELECT COUNT(*) as count FROM chat_users WHERE username = $1;",&[&username]).unwrap();
+        let count : i64 = rows.into_iter().next().unwrap().get("count");
+        if count == 0 {
+            // username is available !
+            let mut hasher = Sha512::new();
+            hasher.input_str(password);
+            let hex_password = hasher.result_str();
+            let password = hex_password.split_at(64).0;
+            pg.query("INSERT INTO chat_users (username, password) VALUES ($1, $2)",&[&username,&password]).unwrap();
+            {
+                let mut cached_users = self.cached_users.write().unwrap();
+                Ok(cached_users.login(username, false))
+            }
+        } else {
+            Err(Error::from_kind(ErrorKind::UsernameInUse))
+        }
+    }
+    
+    /// return auth_key
+    fn login(&self, username: &str, password: &str) -> Result<String> {
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        let mut hasher = Sha512::new();
+        hasher.input_str(&*password);
+        let hex_password = hasher.result_str();
+        let password = hex_password.split_at(64).0;
+        let rows = pg.query("SELECT admin FROM chat_users WHERE username = $1 AND password = $2",&[&username,&password]).unwrap();
+        let admin : Option<bool> = rows.into_iter().next().map(|r| r.get("admin"));
+        match admin {
+            Some(a) => {
+                let mut cached_users = self.cached_users.write().unwrap();
+                Ok(cached_users.login(username, a))
+            },
+            None => bail!(ErrorKind::InvalidCredentials),
+        }
     }
 }
