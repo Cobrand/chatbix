@@ -42,6 +42,11 @@ impl<C> Chatbix<C> {
 
     }
 
+    pub fn logout(&self, username: &str, auth_key: &str) -> Result<()> {
+        let mut cached_users = self.cached_users.write().unwrap();
+        cached_users.logout(username, auth_key)
+    }
+
     fn refresh_users(&self) {
 
     }

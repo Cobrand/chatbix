@@ -63,7 +63,7 @@ impl JsonSuccess {
     }
 }
 
-pub fn new_message<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+pub fn new_message<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let message : Result<_> = req.get_ref::<bodyparser::Struct<NewMessage>>()
         .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
     let message = chatbix_try!(message);
@@ -74,7 +74,7 @@ pub fn new_message<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> I
     status.map(|_| Response::with(JsonSuccess::empty().to_string()))
 }
 
-pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+pub fn get_messages<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let mut channels : Vec<String> = Vec::new();
     let mut include_default_channel = true;
     let (timestamp, timestamp_end) = match req.get_ref::<UrlEncodedQuery>() {
@@ -124,7 +124,7 @@ struct LoginPayload {
     password: String,
 }
 
-pub fn register<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+pub fn register<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<LoginPayload>>()
         .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
     let login_payload = chatbix_try!(login_payload);
@@ -135,7 +135,7 @@ pub fn register<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> Iron
     Ok(Response::with((status::Ok,JsonSuccess::with_auth_key(auth_key).to_string())))
 }
 
-pub fn login<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+pub fn login<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<LoginPayload>>()
         .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
     let login_payload = chatbix_try!(login_payload);
@@ -144,4 +144,22 @@ pub fn login<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronRes
         Some(p) => chatbix_try!(chatbix.login(p.username.as_str(), p.password.as_str())),
     };
     Ok(Response::with((status::Ok,JsonSuccess::with_auth_key(auth_key).to_string())))
+}
+
+
+#[derive(Debug, Deserialize)]
+struct LogoutPayload {
+    username: String,
+    auth_key: String,
+}
+
+pub fn logout<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
+    let logout_payload : Result<_> = req.get_ref::<bodyparser::Struct<LogoutPayload>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let logout_payload = chatbix_try!(logout_payload);
+    match logout_payload.as_ref() {
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(p) => chatbix_try!(chatbix.logout(p.username.as_str(), p.auth_key.as_str())),
+    };
+    Ok(Response::with((status::Ok,JsonSuccess::empty().to_string())))
 }
