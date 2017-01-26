@@ -30,6 +30,8 @@ impl Into<IronResult<Response>> for Error {
                 ("invalid auth_key".to_owned(), status::Unauthorized),
             Error(ErrorKind::NoJsonBodyDetected, _) => 
                 ("no json body detected".to_owned(), status::BadRequest),
+            Error(ErrorKind::NotLoggedIn, _) => 
+                ("not logged in".to_owned(), status::Unauthorized),
             Error(ErrorKind::UsernameInUse, _) => 
                 ("username already taken".to_owned(), status::Conflict),
             Error(ErrorKind::MissingParameter(missing_param_name), _) =>
