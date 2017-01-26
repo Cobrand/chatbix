@@ -1,14 +1,15 @@
+extern crate bodyparser;
+extern crate serde_json;
+
 use std::sync::{Arc,RwLock};
 use super::chatbix::*;
 use super::message::*;
-use iron::*;
+use iron::status;
+use iron::prelude::*;
 use urlencoded::{UrlEncodedQuery,UrlDecodingError};
 use chrono::{NaiveDateTime, ParseError};
 
 use error::*;
-
-extern crate bodyparser;
-extern crate serde_json;
 
 /// will both try to parse dates like 2017-01-19T22:56:16
 /// and integers like 1485357232
@@ -23,8 +24,47 @@ fn timestamp_parse(t: &str) -> Result<NaiveDateTime> {
     })?)
 }
 
+#[derive(Debug, Serialize)]
+struct JsonSuccess {
+    status: &'static str,
+    #[serde(skip_serializing_if="Option::is_none")]
+    messages: Option<Vec<Message>>,
+}
+
+impl JsonSuccess {
+    pub fn empty() -> JsonSuccess {
+        JsonSuccess {
+            status: "success",
+            messages: None
+        }
+    }
+
+    pub fn with_messages(v: Vec<Message>) -> JsonSuccess {
+        JsonSuccess {
+            status: "success",
+            messages: Some(v),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        ::serde_json::to_string(&self).unwrap()
+    }
+}
+
+pub fn new_message<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
+    let message : Result<_> = req.get_ref::<bodyparser::Struct<NewMessage>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let message = chatbix_try!(message);
+    let status : IronResult<()> = match message.as_ref() {
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(new_message) => Ok(chatbix_try!(chatbix.new_message(new_message))),
+    };
+    status.map(|_| Response::with(JsonSuccess::empty().to_string()))
+}
+
 pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> IronResult<Response> {
     let mut channels : Vec<String> = Vec::new();
+    let mut include_default_channel = true;
     let (timestamp, timestamp_end) = match req.get_ref::<UrlEncodedQuery>() {
         Ok(hashmap) => {
             if let Some(tmp_chans) = hashmap.get("channels").and_then(|c| c.get(0)) {
@@ -34,6 +74,9 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
                 for c in tmp_chans {
                     channels.push(c.clone());
                 }
+            };
+            if hashmap.get("no_default_channel").is_some() {
+                include_default_channel = false;
             };
             match (hashmap.get("timestamp"),hashmap.get("timestamp_end")) {
                 (None,None) => {
@@ -59,7 +102,6 @@ pub fn get_messages<C: ChatbixInterface>(req: &mut Request, chatbix: Arc<C>) -> 
             return Err(IronError::new(body_error,(status::BadRequest)))
         },
     };
-    let messages = chatbix_try!(chatbix.get_messages(timestamp,timestamp_end,channels));
-    let json = serde_json::to_string(&messages).unwrap();
-    Ok(Response::with((status::Ok,json)))
+    let messages = chatbix_try!(chatbix.get_messages(timestamp,timestamp_end,channels,include_default_channel));
+    Ok(Response::with((status::Ok,JsonSuccess::with_messages(messages).to_string())))
 }

@@ -13,9 +13,9 @@ use std::io::Write as IoWrite;
 extern crate bodyparser;
 
 macro_rules! chatbix_route {
-    ($url:tt, $route:path, $arc:expr, $api_handler:expr) => {
+    ($method:ident,$url:tt, $route:path, $arc:expr, $api_handler:expr) => {
         let tmp_chatbix_arc = $arc.clone();
-        $api_handler.get($url,
+        $api_handler.$method($url,
                         move |r: &mut Request| {
                             let chatbix_arc = tmp_chatbix_arc.clone();
                             ($route)(r, chatbix_arc)
@@ -30,6 +30,7 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
     fn after(&self, r: &mut Request, res: Response) -> IronResult<Response> {
         let json_mime : mime::Mime = mime::Mime(mime::TopLevel::Application, mime::SubLevel::Json,
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
+        
         Ok(res.set(json_mime))
     }
 
@@ -39,7 +40,8 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
         let mut answer : Vec<u8> = Vec::new();
         let status_code = err.response.status.unwrap_or(status::InternalServerError);
-        
+        println!("Unexpected 500 error: `{0}` ({0:?})",err);
+
         // this part is to allow any error to be translated JSON style.
         write!(&mut answer,r#"{{"error":""#);
         match err.response.body {
@@ -56,7 +58,8 @@ pub fn handler<C>(chatbix: Chatbix<C>) where Chatbix<C>: ChatbixInterface, C: Se
     let mut mount = Mount::new();
     let mut api_handler = Router::new();
     
-    chatbix_route!("get_messages",routes::get_messages, chatbix_arc, api_handler);
+    chatbix_route!(get,"get_messages",routes::get_messages, chatbix_arc, api_handler);
+    chatbix_route!(post,"new_message",routes::new_message, chatbix_arc, api_handler);
     let mut api_handler = Chain::new(api_handler);
     api_handler.link_before(PerRead::<bodyparser::MaxBodyLength>::one(1024 * 1024)); // limit size of requests to 1MB
     api_handler.link_after(ChatbixAfterMiddleware);
