@@ -1,11 +1,11 @@
 use std::sync::RwLock;
 use super::message::{NewMessage,Message};
-use super::user::{ConnectedUser,CachedUsers};
+use super::user::{ConnectedUser,CachedUsers,UserConnectionStatus};
 use std::collections::VecDeque;
 use chrono::NaiveDateTime;
 
 use error::*;
-use r2d2::Pool;
+use r2d2::{Pool,PooledConnection};
 
 use r2d2_postgres::PostgresConnectionManager as PgConnection;
 
@@ -16,9 +16,7 @@ pub trait ChatbixInterface {
     //fn new_message(&self, new_message: NewMessage);
     fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Result<Vec<Message>>;
 
-    fn new_message(&self,username:&str, auth_key:Option<&str>, content:&str, color:&str, channel: &str, tags: i32) -> Result<()> {
-        unimplemented!()
-    }
+    fn new_message(&self,username:&str, auth_key:Option<&str>, content:&str, color:&str, channel: &str, tags: i32) -> Result<()>;
 }
 
 pub struct Chatbix<Connection> {
@@ -28,8 +26,17 @@ pub struct Chatbix<Connection> {
 }
 
 impl<C> Chatbix<C> {
-    pub fn refresh_users(&self) {
+    fn on_new_message(&self) {
 
+    }
+
+    fn refresh_users(&self) {
+
+    }
+
+    fn check_user_auth_key(&self, username: &str, auth_key: &str) -> UserConnectionStatus {
+        let cached_users = self.cached_users.read().unwrap();
+        cached_users.check(username, auth_key)
     }
 }
 
@@ -37,6 +44,7 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
 
     // TODO: change InitParams into (&'a str,TlsMode<'h>)
     // so that the connection is init here instead of outside
+    // UPDATE: ^not sure that it's the right thing to do ...
     type InitParams = Pool<PgConnection>;
 
     fn new(init_params: Self::InitParams) -> Chatbix<Pool<PgConnection>> {
@@ -46,10 +54,15 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
             cached_users: RwLock::new(CachedUsers::new()),
         }
     }
+    
+    fn new_message(&self,username:&str, auth_key:Option<&str>, content:&str, color:&str, channel: &str, tags: i32) -> Result<()> {
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        
+        unimplemented!()
+    }
 
     fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V) -> Result<Vec<Message>> {
-        let pg = self.connection.get().unwrap(); // FIXME < if this is busy for 30s this will panic, 
-            // you should send error 509 instead!
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy))); 
         let rows = match (timestamp, timestamp_end) {
             (None,None) =>
                 pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel IS NULL OR channel = ANY ($1) ORDER BY timestamp DESC LIMIT 150) as pote ORDER BY timestamp ASC;",
