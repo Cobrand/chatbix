@@ -1,11 +1,11 @@
 use std::sync::RwLock;
 use super::message::{NewMessage,Message};
-use super::user::{ConnectedUser,CachedUsers,UserConnectionStatus};
-use std::collections::VecDeque;
+use super::user::{ConnectedUser,ConnectedUsers,CachedUsers,UserConnectionStatus};
 use chrono::{NaiveDateTime,UTC};
 use crypto::digest::Digest;
 use crypto::sha2::Sha512;
 
+use std::collections::HashMap;
 use error::*;
 use r2d2::{Pool,PooledConnection};
 
@@ -33,7 +33,7 @@ pub trait ChatbixInterface {
 
 pub struct Chatbix<Connection> {
     connection: Connection,
-    connected_users: RwLock<VecDeque<ConnectedUser>>,
+    connected_users: RwLock<ConnectedUsers>,
     cached_users: RwLock<CachedUsers>
 }
 
@@ -48,7 +48,8 @@ impl<C> Chatbix<C> {
     }
 
     fn refresh_users(&self) {
-
+        let mut connected_users = self.connected_users.write().unwrap();
+        connected_users.refresh();
     }
 
     fn check_user_auth_key(&self, username: &str, auth_key: &str) -> UserConnectionStatus {
@@ -58,36 +59,15 @@ impl<C> Chatbix<C> {
 }
 
 impl<C> Chatbix<C> where Chatbix<C>:ChatbixInterface {
-    pub fn heartbeat(&self) -> VecDeque<ConnectedUser> {
-        self.connected_users.read().unwrap().clone()
+    pub fn heartbeat(&self) -> Vec<ConnectedUser> {
+        self.connected_users.read().unwrap().as_vec()
     }
 
-    pub fn heartbeat_mut(&self, username: &str, logged_in: bool, active: bool) -> Result<VecDeque<ConnectedUser>> {
+    pub fn heartbeat_mut(&self, username: &str, logged_in: bool, active: bool) -> Result<Vec<ConnectedUser>> {
         let now = now();
         let mut connected_users = self.connected_users.write().unwrap();
-        let push: bool = {
-            match connected_users.iter_mut().find(|connected_user|{
-                connected_user.username == username
-            }) {
-                Some(mut c) => {
-                    if active {
-                        c.last_active = now;
-                    }
-                    c.last_answer = now;
-                    false
-                },
-                None => true
-            }
-        };
-        if push {
-            connected_users.push_back(ConnectedUser {
-                username: username.to_owned(),
-                logged_in: logged_in,
-                last_active: now,
-                last_answer: now,
-            });
-        }
-        Ok(connected_users.clone())
+        connected_users.update(username, logged_in, active);
+        Ok(connected_users.as_vec())
     }
 }
 
@@ -101,11 +81,11 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
     fn new(init_params: Self::InitParams) -> Chatbix<Pool<PgConnection>> {
         Chatbix {
             connection: init_params,
-            connected_users: RwLock::new(VecDeque::with_capacity(8)),
+            connected_users: RwLock::new(ConnectedUsers::new()),
             cached_users: RwLock::new(CachedUsers::new()),
         }
     }
-    
+
     fn new_message(&self, new_message: &NewMessage) -> Result<()> {
         let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
         let timestamp : NaiveDateTime = now();
