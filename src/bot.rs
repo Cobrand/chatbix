@@ -39,10 +39,10 @@ impl Cache {
 }
 
 pub fn load_lib(path: Vec<String>) -> (fn(String) -> Option<Bot>) {
-    |name: string| {
+    |name: String| {
         let mut it = path.iter();
         while Some(str_) = it.next() {
-            let path = PathBuf::from(str_).push(name);
+            let path = PathBuf::from(str_).push(name).set_extension("so");
             if path.as_path().exists() {
                 let lib = try!(lib::Library::new(path));
                 unsafe {
@@ -54,3 +54,7 @@ pub fn load_lib(path: Vec<String>) -> (fn(String) -> Option<Bot>) {
         None
     }
 }
+
+/// example:
+/// let cache = Cache.new(load_lib("/path/to/lib"));
+/// cache.get("myawesomebot").fun(message);
