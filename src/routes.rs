@@ -110,7 +110,7 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
             let auth_key = hashmap.get("auth_key").map(|k| k.get(0).unwrap().clone());
             let active = hashmap.get("active").map(|active| {
                 let active = active.get(0).unwrap();
-                active == "false" || active == "FALSE" || active == "0"
+                !(active == "false" || active == "FALSE" || active == "0")
             }).unwrap_or(true);
             let connected_users = if let Some(username) = username {
                 credentials = Some((username,auth_key.clone(),active));

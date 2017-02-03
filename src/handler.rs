@@ -67,7 +67,7 @@ pub fn handler<C>(chatbix: Chatbix<C>) where Chatbix<C>: ChatbixInterface, C: Se
             chatbix_arc.refresh_users();
             // wait 2 seconds to filter connected users
             thread::sleep(Duration::new(2,0));
-        }
+        };
         // Stop when there are no more Arc<Chatbix<_>> active
     });
     chatbix_route!(get,"get_messages",routes::get_messages, chatbix_arc, api_handler);

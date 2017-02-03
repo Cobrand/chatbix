@@ -36,7 +36,7 @@ impl ConnectedUsers {
         let now = ::chrono::UTC::now().naive_utc();
         let expiration_time = self.expiration_time;
         let users = self.users.drain().filter(|&(_,ref user)|{
-            user.last_answer < now + expiration_time
+            user.last_answer + expiration_time > now
         }).collect::<HashMap<Arc<String>,ConnectedUser>>();
         // ^ TODO: See if this is optimised: (probably not)
         // There are probably better ways to filter values in a hashmap
