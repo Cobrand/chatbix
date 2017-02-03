@@ -64,6 +64,6 @@ pub fn load_lib<'a, S: AsRef<str>>(path: &Vec<String>, name: S) -> Option<Bot<'a
     None
 }
 
-/// example:
-/// let cache = Cache.new(load_lib("/path/to/lib"));
-/// cache.get("myawesomebot").fun(message);
+// example:
+// let cache = Cache.new(load_lib("/path/to/lib"));
+// cache.get("myawesomebot").fun(message);
