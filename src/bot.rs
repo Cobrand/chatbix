@@ -22,18 +22,10 @@ impl<'a> Cache<'a> {
         }
     }
 
-    pub fn get(&self, name: String) -> Bot {
-        match self.cache.get(name) {
-            Some(bot) => bot,
-            None => {
-                match self.loader(name) {
-                    Some(fun) => {
-                        self.cache.insert(name, self.loader(name));
-                        self.get(name)
-                    },
-                    None => None
-                }
-            }
+    pub fn get<S: AsRef<str>>(&mut self, name: S) -> Option<&Bot<'a>> {
+        match load_lib(&self.path, &name) {
+            Some(bot) => Some(self.cache.entry(name.as_ref().to_owned()).or_insert(bot)),
+            None => None
         }
     }
 }
