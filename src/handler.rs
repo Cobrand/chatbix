@@ -42,7 +42,9 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
         let mut answer : Vec<u8> = Vec::new();
         let status_code = err.response.status.unwrap_or(status::InternalServerError);
-        println!("Unexpected 500 error: `{0}` ({0:?})",err);
+        if status_code.is_server_error() {
+            println!("Unexpected {1} error: `{0}` ({0:?})", err, status_code);
+        }
 
         // this part is to allow any error to be translated JSON style.
         write!(&mut answer,r#"{{"error":""#);
