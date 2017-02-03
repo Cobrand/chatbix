@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Cobrand <cobrandw@gmail.com>"]
 
 [dependencies]
+libloading = "0.3"
 iron = "^0.5"
 staticfile = "^0.3"
 mount = "^0.3"

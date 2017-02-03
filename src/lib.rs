@@ -35,6 +35,7 @@ mod chatbix;
 mod user;
 mod routes;
 mod handler;
+mod bot;
 
 use dotenv::dotenv;
 use std::env;
