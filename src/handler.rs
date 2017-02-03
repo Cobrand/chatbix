@@ -9,6 +9,9 @@ use router::Router;
 use super::routes;
 use persistent::Read as PerRead;
 use std::io::Write as IoWrite;
+use std::thread;
+use std::sync::mpsc;
+use std::time::Duration;
 
 extern crate bodyparser;
 
@@ -30,7 +33,6 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
     fn after(&self, r: &mut Request, res: Response) -> IronResult<Response> {
         let json_mime : mime::Mime = mime::Mime(mime::TopLevel::Application, mime::SubLevel::Json,
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
-        
         Ok(res.set(json_mime))
     }
 
@@ -57,7 +59,15 @@ pub fn handler<C>(chatbix: Chatbix<C>) where Chatbix<C>: ChatbixInterface, C: Se
     let chatbix_arc = Arc::new(chatbix);
     let mut mount = Mount::new();
     let mut api_handler = Router::new();
-    
+    let chatbix_weak = Arc::downgrade(&chatbix_arc);
+    thread::spawn(move || {
+        while let Some(chatbix_arc) = chatbix_weak.upgrade() {
+            chatbix_arc.refresh_users();
+            // wait 2 seconds to filter connected users
+            thread::sleep(Duration::new(2,0));
+        }
+        // Stop when there are no more Arc<Chatbix<_>> active
+    });
     chatbix_route!(get,"get_messages",routes::get_messages, chatbix_arc, api_handler);
     chatbix_route!(post,"new_message",routes::new_message, chatbix_arc, api_handler);
     chatbix_route!(post,"login",routes::login, chatbix_arc, api_handler);
