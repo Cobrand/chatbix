@@ -68,7 +68,7 @@ impl ConnectedUsers {
                 logged_in: logged_in,
                 last_active: now,
                 last_answer: now
-            }).expect("Unreachable path: key should not exist");
+            });
         };
     }
 
