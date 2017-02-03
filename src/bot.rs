@@ -28,6 +28,14 @@ impl<'a> Cache<'a> {
             None => None
         }
     }
+
+    pub fn clean(&mut self) {
+        self.cache.clear();
+    }
+
+    pub fn remove(&mut self, name: String) {
+        let _ = self.cache.remove(&name);
+    }
 }
 
 pub fn load_lib<'a, S: AsRef<str>>(path: &Vec<String>, name: S) -> Option<Bot<'a>> {
