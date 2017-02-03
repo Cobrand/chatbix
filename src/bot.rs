@@ -10,19 +10,19 @@ pub struct Bot {
 }
 
 pub struct Cache {
-    cache: HashMap<str, Bot>,
-    loader: fn(str) -> Bot
+    cache: HashMap<String, Bot>,
+    loader: fn(string) -> Bot
 }
 
 impl Cache {
-    pub fn new(loader_: fn(str) -> Bot) -> Cache {
+    pub fn new(loader_: fn(String) -> Bot) -> Cache {
         Cache {
             loader: loader_,
             cache: HashMap::new()
         }
     }
 
-    pub fn get(&self, name: str) -> Bot {
+    pub fn get(&self, name: String) -> Bot {
         match self.cache.get(name) {
             Some(bot) => bot,
             None => {
@@ -38,8 +38,8 @@ impl Cache {
     }
 }
 
-pub fn load_lib(path: Vec<str>) -> (fn(str) -> Option<Bot>) {
-    |name: str| {
+pub fn load_lib(path: Vec<String>) -> (fn(String) -> Option<Bot>) {
+    |name: string| {
         let mut it = path.iter();
         while Some(str_) = it.next() {
             let path = PathBuf::from(str_).push(name);
