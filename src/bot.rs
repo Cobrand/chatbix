@@ -4,18 +4,18 @@ use std::path::PathBuf;
 
 extern crate libloading as lib;
 
-pub struct Bot {
-    pub handler: lib::Library;
-    pub fun: lib::Symbol<unsafe extern fn(str) -> str>;
+pub struct Bot<'a> {
+    pub handler: lib::Library,
+    pub fun: lib::Symbol<'a, unsafe extern "C" fn(*const char) -> *const char>,
 }
 
-pub struct Cache {
-    cache: HashMap<String, Bot>,
-    loader: fn(string) -> Bot
+pub struct Cache<'a> {
+    cache: HashMap<String, Bot<'a>>,
+    path: Vec<String>,
 }
 
-impl Cache {
-    pub fn new(loader_: fn(String) -> Bot) -> Cache {
+impl<'a> Cache<'a> {
+    pub fn new(path: Vec<String>) -> Cache<'a> {
         Cache {
             loader: loader_,
             cache: HashMap::new()
