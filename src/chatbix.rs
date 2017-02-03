@@ -19,7 +19,6 @@ pub trait ChatbixInterface {
     type InitParams;
     fn new(init_params: Self::InitParams) -> Self;
 
-    //fn new_message(&self, new_message: NewMessage);
     fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V, include_default_channel: bool) -> Result<Vec<Message>>;
 
     fn new_message(&self, new_message: &NewMessage) -> Result<()>;
@@ -63,9 +62,18 @@ impl<C> Chatbix<C> where Chatbix<C>:ChatbixInterface {
         self.connected_users.read().unwrap().as_vec()
     }
 
-    pub fn heartbeat_mut(&self, username: &str, logged_in: bool, active: bool) -> Result<Vec<ConnectedUser>> {
+    pub fn heartbeat_mut(&self, username: &str, auth_key: Option<&str>, active: bool) -> Result<Vec<ConnectedUser>> {
         let now = now();
         let mut connected_users = self.connected_users.write().unwrap();
+        let logged_in = match auth_key {
+            Some(auth_key) => {
+                match self.check_user_auth_key(username,auth_key) {
+                    UserConnectionStatus::Connected(_) => true,
+                    _ => false,
+                }
+            },
+            None => false
+        };
         connected_users.update(username, logged_in, active);
         Ok(connected_users.as_vec())
     }

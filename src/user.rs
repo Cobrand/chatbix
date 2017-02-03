@@ -38,6 +38,8 @@ impl ConnectedUsers {
         let users = self.users.drain().filter(|&(_,ref user)|{
             user.last_answer < now + expiration_time
         }).collect::<HashMap<Arc<String>,ConnectedUser>>();
+        // ^ TODO: See if this is optimised: (probably not)
+        // There are probably better ways to filter values in a hashmap
         self.users = users;
     }
 
