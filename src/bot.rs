@@ -17,8 +17,8 @@ pub struct Cache<'a> {
 impl<'a> Cache<'a> {
     pub fn new(path: Vec<String>) -> Cache<'a> {
         Cache {
-            loader: loader_,
-            cache: HashMap::new()
+            path: path,
+            cache: HashMap::new(),
         }
     }
 
@@ -38,21 +38,30 @@ impl<'a> Cache<'a> {
     }
 }
 
-pub fn load_lib(path: Vec<String>) -> (fn(String) -> Option<Bot>) {
-    |name: String| {
-        let mut it = path.iter();
-        while Some(str_) = it.next() {
-            let path = PathBuf::from(str_).push(name).set_extension("so");
-            if path.as_path().exists() {
-                let lib = try!(lib::Library::new(path));
-                unsafe {
-                    let fun_ = try!(lib.get(b"parse_msg"));
-                    return Some(Bot {handler: lib, fun: fun_})
-                }
+pub fn load_lib<'a, S: AsRef<str>>(path: &Vec<String>, name: S) -> Option<Bot<'a>> {
+    let mut it = path.iter();
+    while let Some(str_) = it.next() {
+        let mut path = PathBuf::from(str_);
+        path.push(name.as_ref());
+        path.set_extension("so");
+        if path.as_path().exists() {
+            let lib = match lib::Library::new(path) {
+                Ok(l) => l,
+                Err(e) => return None
+            };
+            unsafe {
+                let fun_ = match lib.get(b"parse_msg") {
+                    Ok(l) => l,
+                    Err(e) => return None
+                };
+                return Some(Bot {
+                    handler: lib,
+                    fun: fun_,
+                });
             }
         }
-        None
     }
+    None
 }
 
 /// example:
