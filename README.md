@@ -119,6 +119,21 @@ Required values in the JSON body:
 
 Returns `{"auth_key":AUTH_KEY}` on success
 
+### Heartbeat
+
+GET `/api/heartbeat`
+
+Get the last messages since timestamps for the given channels, and also get the "connected" users.
+
+Parameters are the same as `get\_messages`, without `timestamp\_end`
+
+And these are added as well:
+
+* username: (your username)
+* (optionnal) auth\_key (your auth\_key)
+* active: TRUE/true/1 OR FALSE/false/0 , with default "true"
+
+When the window is not focused in the chat anymore, you should set `active` to `false`.
 
 ## License
 
