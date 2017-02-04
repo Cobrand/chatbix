@@ -20,6 +20,9 @@ Every route below has for base URI `http(s)://address.of.chat/api/`
 Timestamps can either be of the format 1485402097 or of the format
 2017-01-26T04:41:37 (see iso 8601 without the Z at the end)
 
+the integer format is preferred because it doesn't leave place to interpretation,
+plus the parsing doesn't cost as much (even though it's still minimal)
+
 #### Tags
 
 tags are on 32bits:
