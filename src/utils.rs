@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use std::result::Result as StdResult;
 use error::*;
 use serde::Serializer;
+use chrono::{UTC,Timelike};
 
 pub fn timestamp_ser<S>(time: &NaiveDateTime, serializer: &mut S) -> StdResult<(), S::Error> where S: Serializer {
     serializer.serialize_i64(time.timestamp())
@@ -18,4 +19,8 @@ pub fn timestamp_parse(t: &str) -> Result<NaiveDateTime> {
             Err(_) => Err(err),
         }
     })?)
+}
+
+pub fn now() -> NaiveDateTime {
+    UTC::now().naive_utc().with_nanosecond(0).unwrap()
 }

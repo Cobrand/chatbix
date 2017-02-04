@@ -4,6 +4,7 @@ use super::user::{ConnectedUser,ConnectedUsers,CachedUsers,UserConnectionStatus}
 use chrono::{NaiveDateTime,UTC};
 use crypto::digest::Digest;
 use crypto::sha2::Sha512;
+use super::utils::now;
 
 use std::collections::HashMap;
 use error::*;
@@ -11,9 +12,6 @@ use r2d2::{Pool,PooledConnection};
 
 use r2d2_postgres::PostgresConnectionManager as PgConnection;
 
-fn now() -> NaiveDateTime {
-    UTC::now().naive_utc()
-}
 
 pub trait ChatbixInterface {
     type InitParams;
