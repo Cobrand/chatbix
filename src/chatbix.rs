@@ -127,18 +127,18 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
                 },
             (Some(timestamp),None) =>
                 if include_default_channel {
-                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp ASC;",
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp ASC;",
                              &[&timestamp,&channels.as_ref()]).unwrap()
                 } else {
-                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND channel = ANY ($2) ORDER BY timestamp ASC;",
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND channel = ANY ($2) ORDER BY timestamp ASC;",
                              &[&timestamp,&channels.as_ref()]).unwrap()
                 },
             (Some(timestamp),Some(timestamp_end)) =>
                 if include_default_channel {
-                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_messages.timestamp < $2 AND (channel IS NULL OR channel = ANY ($3)) ORDER BY timestamp ASC;",
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND chat_messages.timestamp < $2 AND (channel IS NULL OR channel = ANY ($3)) ORDER BY timestamp ASC;",
                              &[&timestamp,&timestamp_end,&channels.as_ref()]).unwrap()
                 } else { 
-                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp >= $1 AND chat_messages.timestamp < $2 AND channel = ANY ($3) ORDER BY timestamp ASC;",
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND chat_messages.timestamp < $2 AND channel = ANY ($3) ORDER BY timestamp ASC;",
                              &[&timestamp,&timestamp_end,&channels.as_ref()]).unwrap()
                 },
             (None,Some(timestamp_end)) =>

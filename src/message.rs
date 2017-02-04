@@ -1,9 +1,11 @@
 use chrono::NaiveDateTime;
+use super::utils::timestamp_ser;
 
 #[derive(Debug,Serialize)]
 pub struct Message {
     pub id: i32,
     pub author: String,
+    #[serde(serialize_with = "timestamp_ser")]
     pub timestamp: NaiveDateTime,
     pub content: String,
     /// tags on 32bits:

@@ -7,6 +7,7 @@ use std::borrow::Borrow;
 use chrono::Duration;
 use postgres::Connection as PgConnection;
 use rand::{thread_rng, Rng};
+use super::utils::timestamp_ser;
 
 use error::*;
 
@@ -14,7 +15,9 @@ use error::*;
 pub struct ConnectedUser {
     pub username: Arc<String>,
     pub logged_in: bool,
+    #[serde(serialize_with = "timestamp_ser")]
     pub last_active: NaiveDateTime,
+    #[serde(serialize_with = "timestamp_ser")]
     pub last_answer: NaiveDateTime,
 }
 

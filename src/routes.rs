@@ -5,25 +5,13 @@ use std::sync::{Arc,RwLock};
 use super::chatbix::*;
 use super::message::*;
 use super::user::ConnectedUser;
+use super::utils::timestamp_parse;
 use iron::status;
 use iron::prelude::*;
 use urlencoded::{UrlEncodedQuery,UrlDecodingError};
 use chrono::{NaiveDateTime, ParseError};
 
 use error::*;
-
-/// will both try to parse dates like 2017-01-19T22:56:16
-/// and integers like 1485357232
-fn timestamp_parse(t: &str) -> Result<NaiveDateTime> {
-    let timestamp : StdResult<NaiveDateTime,_> = t.parse::<NaiveDateTime>();
-    Ok(timestamp.or_else(|err|{
-        let secs = t.parse::<i64>();
-        match secs {
-            Ok(secs) => Ok(NaiveDateTime::from_timestamp(secs,0)),
-            Err(_) => Err(err),
-        }
-    })?)
-}
 
 #[derive(Debug, Serialize)]
 struct JsonSuccess {
