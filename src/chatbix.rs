@@ -92,7 +92,7 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         let mut tags : i32= new_message.tags.unwrap_or(0) & 0b000_0000_0000_0000_0000_0000_1111_1110i32; // see User.tags for more info
         if let Some(ref auth_key) = new_message.auth_key {
             let cached_users = self.cached_users.read().unwrap();
-            match cached_users.check(&*new_message.author, &*auth_key) {
+            match cached_users.check(&*new_message.username, &*auth_key) {
                 UserConnectionStatus::NotLoggedIn => bail!(ErrorKind::NotLoggedIn),
                 UserConnectionStatus::AuthFailed => bail!(ErrorKind::InvalidAuthKey),
                 UserConnectionStatus::Connected(_) => {
@@ -102,7 +102,7 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         };
         pg.query("INSERT INTO chat_messages (author, timestamp, content, tags, color, channel) \
                   VALUES ($1, $2, $3, $4, $5, $6)",
-                  &[&new_message.author, &timestamp, &new_message.content, &tags, &new_message.color, &new_message.channel]).unwrap();
+                  &[&new_message.username, &timestamp, &new_message.content, &tags, &new_message.color, &new_message.channel]).unwrap();
         Ok(())
     }
 

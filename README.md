@@ -74,7 +74,7 @@ The body must always be valid JSON.
 
 These values are required:
 
-* author: string
+* username: string
 * content: string
 
 These values are optional:

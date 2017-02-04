@@ -31,7 +31,7 @@ pub struct Message {
 
 #[derive(Debug,Deserialize)]
 pub struct NewMessage {
-    pub author: String,
+    pub username: String,
     pub content: String,
     pub tags: Option<i32>,
     pub color: Option<String>,
