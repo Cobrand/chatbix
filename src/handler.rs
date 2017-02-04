@@ -7,6 +7,7 @@ use iron::{status,mime,Iron,Chain,Response,Request,IronResult,IronError,Set,self
 use mount::Mount;
 use router::Router;
 use super::routes;
+use staticfile::Static;
 use persistent::Read as PerRead;
 use std::io::Write as IoWrite;
 use std::thread;
@@ -80,6 +81,8 @@ pub fn handler<C>(chatbix: Chatbix<C>) where Chatbix<C>: ChatbixInterface, C: Se
     api_handler.link_before(PerRead::<bodyparser::MaxBodyLength>::one(1024 * 1024)); // limit size of requests to 1MB
     api_handler.link_after(ChatbixAfterMiddleware);
     mount.mount("/api", api_handler);
+    let static_root = Static::new(env::var("STATIC_ROOT_DIR").unwrap_or(String::new()));
+    mount.mount("/", static_root);
     let listen_url = env::var("LISTEN_URL").unwrap_or("0.0.0.0:8080".to_owned());
     let _listening = Iron::new(mount).http(&*listen_url).unwrap();
 }
