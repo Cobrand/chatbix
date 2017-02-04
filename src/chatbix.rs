@@ -1,12 +1,11 @@
 use std::sync::RwLock;
 use super::message::{NewMessage,Message};
 use super::user::{ConnectedUser,ConnectedUsers,CachedUsers,UserConnectionStatus};
-use chrono::{NaiveDateTime,UTC};
+use chrono::NaiveDateTime;
 use crypto::digest::Digest;
 use crypto::sha2::Sha512;
 use super::utils::now;
 
-use std::collections::HashMap;
 use error::*;
 use r2d2::{Pool,PooledConnection};
 
@@ -35,10 +34,6 @@ pub struct Chatbix<Connection> {
 }
 
 impl<C> Chatbix<C> {
-    fn on_new_message(&self) {
-
-    }
-
     pub fn logout(&self, username: &str, auth_key: &str) -> Result<()> {
         let mut cached_users = self.cached_users.write().unwrap();
         cached_users.logout(username, auth_key)
@@ -61,7 +56,6 @@ impl<C> Chatbix<C> where Chatbix<C>:ChatbixInterface {
     }
 
     pub fn heartbeat_mut(&self, username: &str, auth_key: Option<&str>, active: bool) -> Result<Vec<ConnectedUser>> {
-        let now = now();
         let mut connected_users = self.connected_users.write().unwrap();
         let logged_in = match auth_key {
             Some(auth_key) => {

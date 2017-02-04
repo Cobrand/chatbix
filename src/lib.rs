@@ -20,13 +20,9 @@ extern crate persistent;
 extern crate crypto;
 extern crate rand;
 
-#[macro_use]
-extern crate lazy_static;
-
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
 extern crate serde_json;
 
 #[macro_use]
@@ -44,8 +40,6 @@ use std::env;
 use r2d2_postgres::{TlsMode, PostgresConnectionManager};
 
 use chatbix::*;
-
-use error::*;
 
 pub fn run_pg() {
     dotenv().ok();

@@ -1,8 +1,6 @@
 use iron::{status,IronError,IronResult,Response};
 use bodyparser::{BodyError, BodyErrorCause};
 
-pub type StdResult<T,E> = ::std::result::Result<T,E>;
-
 #[derive(Debug,Serialize)]
 struct JsonError {
     status: &'static str,
@@ -34,8 +32,6 @@ impl Into<IronResult<Response>> for Error {
                 ("not logged in".to_owned(), status::Unauthorized),
             Error(ErrorKind::UsernameInUse, _) => 
                 ("username already taken".to_owned(), status::Conflict),
-            Error(ErrorKind::MissingParameter(missing_param_name), _) =>
-                (format!("missing parameter `{}`",missing_param_name),status::UnprocessableEntity),
             Error(ErrorKind::BodyparserError(body_error),_) =>
                 match body_error.cause {
                     BodyErrorCause::Utf8Error(utf8_err) => (format!("body error: {}",utf8_err),status::UnprocessableEntity),
@@ -64,7 +60,6 @@ error_chain! {
         InvalidAuthKey
         UsernameInUse
         NotLoggedIn
-        MissingParameter(s: String)
         DatabaseBusy
         NoJsonBodyDetected
     }

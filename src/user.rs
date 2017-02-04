@@ -1,11 +1,8 @@
 use chrono::NaiveDateTime;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::hash::{Hash, Hasher};
-use std::borrow::Borrow;
 
 use chrono::Duration;
-use postgres::Connection as PgConnection;
 use rand::{thread_rng, Rng};
 use super::utils::timestamp_ser;
 

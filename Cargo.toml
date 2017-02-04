@@ -17,8 +17,6 @@ persistent = "0.3"
 rust-crypto = "^0.2"
 rand = "^0.3"
 
-lazy_static = "^0.2"
-
 serde = "^0.8"
 serde_derive = "^0.8"
 serde_json = "^0.8"

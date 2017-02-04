@@ -1,7 +1,7 @@
 extern crate bodyparser;
 extern crate serde_json;
 
-use std::sync::{Arc,RwLock};
+use std::sync::Arc;
 use super::chatbix::*;
 use super::message::*;
 use super::user::ConnectedUser;
@@ -9,7 +9,6 @@ use super::utils::timestamp_parse;
 use iron::status;
 use iron::prelude::*;
 use urlencoded::{UrlEncodedQuery,UrlDecodingError};
-use chrono::{NaiveDateTime, ParseError};
 
 use error::*;
 
@@ -100,7 +99,7 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
                 let active = active.get(0).unwrap();
                 !(active == "false" || active == "FALSE" || active == "0")
             }).unwrap_or(true);
-            let connected_users = if let Some(username) = username {
+            if let Some(username) = username {
                 credentials = Some((username,auth_key.clone(),active));
             };
             let timestamp = match hashmap.get("timestamp") {

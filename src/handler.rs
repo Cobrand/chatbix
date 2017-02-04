@@ -1,6 +1,5 @@
 
 use std::env;
-use r2d2_postgres::PostgresConnectionManager;
 use chatbix::*;
 use std::sync::Arc;
 use iron::{status,mime,Iron,Chain,Response,Request,IronResult,IronError,Set,self};
@@ -11,7 +10,6 @@ use staticfile::Static;
 use persistent::Read as PerRead;
 use std::io::Write as IoWrite;
 use std::thread;
-use std::sync::mpsc;
 use std::time::Duration;
 
 extern crate bodyparser;
@@ -31,14 +29,13 @@ macro_rules! chatbix_route {
 struct ChatbixAfterMiddleware;
 
 impl iron::AfterMiddleware for ChatbixAfterMiddleware {
-    fn after(&self, r: &mut Request, res: Response) -> IronResult<Response> {
+    fn after(&self, _r: &mut Request, res: Response) -> IronResult<Response> {
         let json_mime : mime::Mime = mime::Mime(mime::TopLevel::Application, mime::SubLevel::Json,
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
         Ok(res.set(json_mime))
     }
 
     fn catch(&self, _: &mut Request, err: IronError) -> IronResult<Response> {
-        use std::fmt::Write;
         let json_mime : mime::Mime = mime::Mime(mime::TopLevel::Application, mime::SubLevel::Json,
                                                 vec![(mime::Attr::Charset,mime::Value::Utf8)]);
         let mut answer : Vec<u8> = Vec::new();
@@ -48,12 +45,22 @@ impl iron::AfterMiddleware for ChatbixAfterMiddleware {
         }
 
         // this part is to allow any error to be translated JSON style.
-        write!(&mut answer,r#"{{"error":""#);
-        match err.response.body {
+        if let Err(e) = write!(&mut answer,r#"{{"error":""#) {
+            println!("Unexpected error {0} ({0:?})",e);
+            return Ok(Response::with((json_mime,status::InternalServerError,r#"{"error":"unexpected internal server error: unable to write json"}"#)));
+        };
+        let r = match err.response.body {
             Some(mut b) => b.write_body(&mut answer),
             None => write!(&mut answer,"{}",err.error),
         };
-        write!(&mut answer,r#""}}"#);
+        if let Err(e) = r {
+            println!("Unexpected error {0} ({0:?})",e);
+            return Ok(Response::with((json_mime,status::InternalServerError,r#"{"error":"unexpected internal server error: unable to write json (1)"}"#)));
+        };
+        if let Err(e) = write!(&mut answer,r#""}}"#) {
+            println!("Unexpected error {0} ({0:?})",e);
+            return Ok(Response::with((json_mime,status::InternalServerError,r#"{"error":"unexpected internal server error: unable to write json (2)"}"#)));
+        }
         Ok(Response::with((status_code,answer,json_mime)))
     }
 }
