@@ -87,9 +87,9 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
     }
 
     fn new_message(&self, new_message: &NewMessage) -> Result<()> {
-        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
         let timestamp : NaiveDateTime = now();
-        let mut tags : i32= new_message.tags.unwrap_or(0) & 0b000_0000_0000_0000_0000_0000_1111_1110i32; // see User.tags for more info
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        let mut tags : i32= new_message.tags.unwrap_or(0) & 0b000_0000_0000_0000_0000_0011_1111_1110i32; // see User.tags for more info
         if let Some(ref auth_key) = new_message.auth_key {
             let cached_users = self.cached_users.read().unwrap();
             match cached_users.check(&*new_message.username, &*auth_key) {

@@ -13,7 +13,8 @@ pub struct Message {
     /// tags & 2 >> 1 = generated // is this message generated from another message
     /// tags & 4 >> 2 = bot // is this message sent by a bot ?
     /// tags & 8 >> 3 = no_notif // should this message ignore notifications rules and not notify him
-    /// tags & (2^4 + 2^5 + 2^6 + 2^7) = show_value
+    /// tags & (2^4 | 2^5 | 2^6 | 2^7) >> 4 = show_value
+    /// tags & (2^8 | 2^9) >> 8 = text_format
     /// everything else: reserved for later use
     ///
     /// show_value : u4; 
@@ -24,6 +25,13 @@ pub struct Message {
     /// ^ these are basically ignored by the server and are only implementation dependant
     /// you can set up your client to never show show_value = 4, and show show_value = 1 but not
     /// notify, ...
+    ///
+    /// text_format = 0: plain text
+    /// text_format = 1: markdown
+    /// text_format = 2: preformatted / code -> content that must not trim spaces and use a monospaced
+    /// to display the content
+    /// text_format = 3: (reserved for later use)
+    ///
     pub tags: i32,
     pub color: Option<String>,
     pub channel: Option<String>,
