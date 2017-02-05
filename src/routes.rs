@@ -73,7 +73,7 @@ pub fn new_message<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<
         None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
         Some(new_message) => Ok(chatbix_try!(chatbix.new_message(new_message))),
     };
-    status.map(|_| Response::with(JsonSuccess::empty().to_string()))
+    status.map(|_| Response::with((status::Ok,JsonSuccess::empty().to_string())))
 }
 
 pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
