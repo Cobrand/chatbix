@@ -199,6 +199,24 @@ pub fn login<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Respon
     Ok(Response::with((status::Ok,JsonSuccess::with_auth_key(auth_key).to_string())))
 }
 
+#[derive(Debug, Deserialize)]
+struct DelMessage {
+    pub message_id: i32,
+    pub username: String,
+    pub auth_key: String,
+}
+
+/// admin only : taht is why auth_key is required
+pub fn delete_message<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
+    let del_message : Result<_> = req.get_ref::<bodyparser::Struct<DelMessage>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let del_message = chatbix_try!(del_message);
+    match del_message.as_ref() { 
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(del_message) => chatbix_try!(chatbix.try_del(del_message.username.as_str(), del_message.auth_key.as_str(), del_message.message_id))
+    };
+    Ok(Response::with((status::Ok,JsonSuccess::empty().to_string())))
+}
 
 #[derive(Debug, Deserialize)]
 struct LogoutPayload {

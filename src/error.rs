@@ -26,6 +26,8 @@ impl Into<IronResult<Response>> for Error {
                 ("invalid username or password".to_owned(),status::UnprocessableEntity),
             Error(ErrorKind::InvalidAuthKey, _) =>
                 ("invalid auth_key".to_owned(), status::Unauthorized),
+            Error(ErrorKind::Forbidden, _) =>
+                ("insufficient rights".to_owned(), status::Forbidden),
             Error(ErrorKind::NoJsonBodyDetected, _) => 
                 ("no json body detected".to_owned(), status::BadRequest),
             Error(ErrorKind::NotLoggedIn, _) => 
@@ -59,6 +61,7 @@ error_chain! {
         InvalidCredentials
         InvalidAuthKey
         UsernameInUse
+        Forbidden
         NotLoggedIn
         DatabaseBusy
         NoJsonBodyDetected

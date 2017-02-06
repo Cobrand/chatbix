@@ -20,6 +20,10 @@ pub trait ChatbixInterface {
 
     fn new_message(&self, new_message: &NewMessage) -> Result<()>;
 
+    /// forces message deletion
+    /// You should probably use try_del instead if coming from a user
+    fn delete_message(&self, id: i32) -> Result<()>;
+
     /// returns some auth_key
     fn register(&self, username: &str, password: &str) -> Result<String>;
 
@@ -69,6 +73,19 @@ impl<C> Chatbix<C> where Chatbix<C>:ChatbixInterface {
         connected_users.update(username, logged_in, active);
         Ok(connected_users.as_vec())
     }
+
+    /// checks if user is allowed to delete first
+    pub fn try_del(&self, username: &str, auth_key: &str, message_id: i32) -> Result<()> {
+        use super::user::UserConnectionStatus::*;
+        match self.check_user_auth_key(username, auth_key) {
+            AuthFailed => Err(Error::from_kind(ErrorKind::InvalidAuthKey)),
+            NotLoggedIn => Err(Error::from_kind(ErrorKind::NotLoggedIn)),
+            Connected(false) => Err(Error::from_kind(ErrorKind::Forbidden)),
+            Connected(true) => {
+                self.delete_message(message_id)
+            }
+        }
+    }
 }
 
 impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
@@ -103,6 +120,12 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         pg.query("INSERT INTO chat_messages (author, timestamp, content, tags, color, channel) \
                   VALUES ($1, $2, $3, $4, $5, $6)",
                   &[&new_message.username, &timestamp, &new_message.content, &tags, &new_message.color, &new_message.channel]).unwrap();
+        Ok(())
+    }
+
+    fn delete_message(&self, id: i32) -> Result<()> {
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        pg.query("DELETE FROM chat_messages WHERE id = $1",&[&id]).unwrap();
         Ok(())
     }
 
