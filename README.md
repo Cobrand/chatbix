@@ -18,7 +18,7 @@ Every route below has for base URI `http(s)://address.of.chat/api/`
 #### Timestamp
 
 Timestamps can either be of the format 1485402097 or of the format
-2017-01-26T04:41:37 (see iso 8601 without the Z at the end)
+2017-01-26T04:41:37Z
 
 the integer format is preferred because it doesn't leave place to interpretation,
 plus the parsing doesn't cost as much (even though it's still minimal)
@@ -32,18 +32,26 @@ tags are on 32bits:
 * tags & 4 >> 2 = bot // is this message sent by a bot ?
 * tags & 8 >> 3 = no\_notif // should this message ignore notifications rules and not notify him
 * tags & (2^4 + 2^5 + 2^6 + 2^7) >> 4 = show\_value
+* tags & (2^8 | 2^9) >> 8 = text_format
 * everything else: reserved for later use
   
 `show_value`:
 
-    * show\_value : u4; 
-    * show\_value = 0: no change;
-    * show\_value = 1 to 4; 'hidden' message, with 4 being more hidden than 1
-    * show\_value = 9 to 12; 'important' message, with 12 being more important
-    
-    ^ these are basically ignored by the server and are only implementation dependant
-    you can set up your client to never show show_value = 4, and show show_value = 1 but not
-    notify, ...
+* show\_value : u4; 
+* show\_value = 0: no change;
+* show\_value = 1 to 4; 'hidden' message, with 4 being more hidden than 1
+* show\_value = 9 to 12; 'important' message, with 12 being more important
+
+^ these are basically ignored by the server and are only implementation dependant
+you can set up your client to never show show_value = 4, and show show_value = 1 but not
+notify, ...
+
+* text_format = 0: plain text
+* text_format = 1: markdown
+* text_format = 2: preformatted / code -> content that must not trim spaces and use a monospaced to display the content
+* text_format = 3: (reserved for later use)
+
+^ these are ignored by the server as well, ...
 
 #### Auth Key
 
