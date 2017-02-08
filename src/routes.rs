@@ -80,7 +80,7 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
     let mut channels : Vec<String> = Vec::new();
     let mut include_default_channel : bool = true;
     let mut credentials : Option<(String,Option<String>,bool)> = None;
-    let timestamp = match req.get_ref::<UrlEncodedQuery>() {
+    let interval = match req.get_ref::<UrlEncodedQuery>() {
         Ok(hashmap) => {
             if let Some(tmp_chans) = hashmap.get("channels").and_then(|c| c.get(0)) {
                 channels = tmp_chans.split(',').map(|s:&str| s.to_owned()).collect::<Vec<String>>();
@@ -102,13 +102,13 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
             if let Some(username) = username {
                 credentials = Some((username,auth_key.clone(),active));
             };
-            let timestamp = match hashmap.get("timestamp") {
-                None => None,
-                Some(timestamps) => Some(chatbix_try!(timestamp_parse(timestamps.get(0).unwrap()))),
-            };
-            timestamp
+            match (hashmap.get("timestamp"),hashmap.get("message_id")) {
+                (None,None) => Interval::default(),
+                (Some(timestamps),None) => Interval::AllFromTimestamp(chatbix_try!(timestamp_parse(timestamps.get(0).unwrap()))),
+                (_,Some(message_id)) => Interval::AllFromId(chatbix_try!(message_id.get(0).unwrap().parse::<i32>().map_err(|e| Error::from(e)))),
+            }
         },
-        Err(UrlDecodingError::EmptyQuery) => None,
+        Err(UrlDecodingError::EmptyQuery) => Interval::default(),
         Err(UrlDecodingError::BodyError(body_error)) => {
             return Err(IronError::new(body_error,(status::BadRequest)))
         },
@@ -122,7 +122,7 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
         },
         None => chatbix.heartbeat()
     };
-    let messages = chatbix_try!(chatbix.get_messages(timestamp,None,channels,include_default_channel));
+    let messages = chatbix_try!(chatbix.get_messages(interval,channels,include_default_channel));
     Ok(Response::with((status::Ok,JsonSuccess::with_messages_and_connected(messages, connected_users).to_string())))
 }
 // ^ TODO: refactor this with heartbeat
@@ -130,7 +130,7 @@ pub fn heartbeat<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Re
 pub fn get_messages<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Response> where Chatbix<I>: ChatbixInterface {
     let mut channels : Vec<String> = Vec::new();
     let mut include_default_channel = true;
-    let (timestamp, timestamp_end) = match req.get_ref::<UrlEncodedQuery>() {
+    let interval = match req.get_ref::<UrlEncodedQuery>() {
         Ok(hashmap) => {
             if let Some(tmp_chans) = hashmap.get("channels").and_then(|c| c.get(0)) {
                 channels = tmp_chans.split(',').map(|s:&str| s.to_owned()).collect::<Vec<String>>();
@@ -143,31 +143,32 @@ pub fn get_messages<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult
             if hashmap.get("no_default_channel").is_some() {
                 include_default_channel = false;
             };
-            match (hashmap.get("timestamp"),hashmap.get("timestamp_end")) {
-                (None,None) => {
-                    (None,None)
-                },
-                (Some(timestamps),None) => {
+            match (hashmap.get("message_id"),hashmap.get("timestamp"),hashmap.get("timestamp_end")) {
+                (None,Some(timestamps),None) => {
                     let timestamp = chatbix_try!(timestamp_parse(timestamps.get(0).unwrap())); 
-                    (Some(timestamp),None)
+                    Interval::AllFromTimestamp(timestamp)
                 },
-                (None,Some(timestamps_end)) => {
-                    let timestamp_end = chatbix_try!(timestamp_parse(timestamps_end.get(0).unwrap()));
-                    (None,Some(timestamp_end))
-                },
-                (Some(timestamps),Some(timestamps_end)) => {
+                (None,Some(timestamps),Some(timestamps_end)) => {
                     let timestamp = chatbix_try!(timestamp_parse(timestamps.get(0).unwrap()));
                     let timestamp_end = chatbix_try!(timestamp_parse(timestamps_end.get(0).unwrap()));
-                    (Some(timestamp),Some(timestamp_end))
-                }
+                    Interval::FromToTimestamp(timestamp, timestamp_end)
+                },
+                (Some(message_id),_,_) => {
+                    let message_id = chatbix_try!(message_id.get(0).unwrap().parse::<i32>()
+                        .map_err(|e| Error::from(e)));
+                    Interval::AllFromId(message_id)
+                },
+                (_,_,_) => {
+                    Interval::default()
+                },
             }
         },
-        Err(UrlDecodingError::EmptyQuery) => (None,None),
+        Err(UrlDecodingError::EmptyQuery) => Interval::default(),
         Err(UrlDecodingError::BodyError(body_error)) => {
             return Err(IronError::new(body_error,(status::BadRequest)))
         },
     };
-    let messages = chatbix_try!(chatbix.get_messages(timestamp,timestamp_end,channels,include_default_channel));
+    let messages = chatbix_try!(chatbix.get_messages(interval,channels,include_default_channel));
     Ok(Response::with((status::Ok,JsonSuccess::with_messages(messages).to_string())))
 }
 

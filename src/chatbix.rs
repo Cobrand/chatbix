@@ -11,12 +11,24 @@ use r2d2::{Pool,PooledConnection};
 
 use r2d2_postgres::PostgresConnectionManager as PgConnection;
 
+pub enum Interval {
+    AllFromId(i32),
+    AllFromTimestamp(NaiveDateTime),
+    FromToTimestamp(NaiveDateTime, NaiveDateTime),
+    Last(i64),
+}
+
+impl Default for Interval {
+    fn default() -> Interval {
+        Interval::Last(150)
+    }
+}
 
 pub trait ChatbixInterface {
     type InitParams;
     fn new(init_params: Self::InitParams) -> Self;
 
-    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V, include_default_channel: bool) -> Result<Vec<Message>>;
+    fn get_messages<V: AsRef<[String]>>(&self, interval: Interval, channels: V, include_default_channel: bool) -> Result<Vec<Message>>;
 
     fn new_message(&self, new_message: &NewMessage) -> Result<()>;
 
@@ -129,42 +141,43 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         Ok(())
     }
 
-    fn get_messages<V: AsRef<[String]>>(&self, timestamp: Option<NaiveDateTime>, timestamp_end: Option<NaiveDateTime>, channels: V, include_default_channel: bool) -> Result<Vec<Message>> {
+    fn get_messages<V: AsRef<[String]>>(&self, interval: Interval, channels: V, include_default_channel: bool) -> Result<Vec<Message>> {
         let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy))); 
-        let rows = match (timestamp, timestamp_end) {
-            (None,None) =>
+        let rows = match interval {
+            Interval::Last(last) => {
                 if include_default_channel {
-                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel IS NULL OR channel = ANY ($1) ORDER BY timestamp DESC LIMIT 150) as pote ORDER BY timestamp ASC;",
-                             &[&channels.as_ref()]).unwrap()
+                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel IS NULL OR channel = ANY ($1) ORDER BY timestamp DESC LIMIT $2) as pote ORDER BY timestamp ASC;",
+                             &[&channels.as_ref(),&last])
                 } else {
-                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel = ANY ($1) ORDER BY timestamp DESC LIMIT 150) as pote ORDER BY timestamp ASC;",
-                             &[&channels.as_ref()]).unwrap()
-                },
-            (Some(timestamp),None) =>
+                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE channel = ANY ($1) ORDER BY timestamp DESC LIMIT $2) as pote ORDER BY timestamp ASC;",
+                             &[&channels.as_ref(),&last])
+                }
+            },
+            Interval::AllFromTimestamp(timestamp) =>
                 if include_default_channel {
                     pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp ASC;",
-                             &[&timestamp,&channels.as_ref()]).unwrap()
+                             &[&timestamp,&channels.as_ref()])
                 } else {
                     pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND channel = ANY ($2) ORDER BY timestamp ASC;",
-                             &[&timestamp,&channels.as_ref()]).unwrap()
+                             &[&timestamp,&channels.as_ref()])
                 },
-            (Some(timestamp),Some(timestamp_end)) =>
+            Interval::FromToTimestamp(timestamp, timestamp_end) =>
                 if include_default_channel {
                     pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND chat_messages.timestamp < $2 AND (channel IS NULL OR channel = ANY ($3)) ORDER BY timestamp ASC;",
-                             &[&timestamp,&timestamp_end,&channels.as_ref()]).unwrap()
+                             &[&timestamp,&timestamp_end,&channels.as_ref()])
                 } else { 
                     pg.query("SELECT * FROM chat_messages WHERE chat_messages.timestamp > $1 AND chat_messages.timestamp < $2 AND channel = ANY ($3) ORDER BY timestamp ASC;",
-                             &[&timestamp,&timestamp_end,&channels.as_ref()]).unwrap()
+                             &[&timestamp,&timestamp_end,&channels.as_ref()])
                 },
-            (None,Some(timestamp_end)) =>
+            Interval::AllFromId(id) =>
                 if include_default_channel {
-                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_messages.timestamp < $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp DESC) as pote ORDER BY timestamp ASC;",
-                             &[&timestamp_end,&channels.as_ref()]).unwrap()
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.id > $1 AND (channel IS NULL OR channel = ANY ($2)) ORDER BY timestamp ASC;",
+                             &[&id,&channels.as_ref()])
                 } else {
-                    pg.query("SELECT * FROM (SELECT * FROM chat_messages WHERE chat_messages.timestamp < $1 AND (channel = ANY ($2)) ORDER BY timestamp DESC) as pote ORDER BY timestamp ASC;",
-                             &[&timestamp_end,&channels.as_ref()]).unwrap()
+                    pg.query("SELECT * FROM chat_messages WHERE chat_messages.id > $1 AND channel = ANY ($2) ORDER BY timestamp ASC;",
+                             &[&id,&channels.as_ref()])
                 },
-        };
+        }.expect("PG Query Failed");
         // TODO : collect rows into Result<Vec, Err> instead,
         // so that it doesnt crash when the columns are changed (use get_opt instead of `get`)
         Ok(rows.into_iter().map(|row|{

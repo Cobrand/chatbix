@@ -46,10 +46,10 @@ tags are on 32bits:
 you can set up your client to never show show_value = 4, and show show_value = 1 but not
 notify, ...
 
-* text_format = 0: plain text
-* text_format = 1: markdown
-* text_format = 2: preformatted / code -> content that must not trim spaces and use a monospaced to display the content
-* text_format = 3: (reserved for later use)
+* text\_format = 0: plain text
+* text\_format = 1: markdown
+* text\_format = 2: preformatted / code -> content that must not trim spaces and use a monospaced to display the content
+* text\_format = 3: (reserved for later use)
 
 ^ these are ignored by the server as well, ...
 
@@ -68,11 +68,11 @@ Method: GET
 * Retrieving the last X messages : `/api/get_messages`
   (Note: X is hardcoded for now)
 * Retrieving all messages since T : `/api/get_messages?timestamp=T`
+* Retrieving all messages since message of id I : `/api/get_messages?message_id=I`
 * Retrieving all messages between T1 and T2 `/api/get_messages?timestamp=T1&timestamp_end=T2`
 * Retrieving all messages of the default channel plus the channel C `/api/get_messages?channel=C`
 * Retrieving all messages of the default channel plus multiple channels C1, C2, ... : `/api/get_messages?channel=C1?channel=C2`, `/api/get_messages?channels=C1,C2,C3`, or any combination of both
-* You can retrieve all messages until date T2 as well, but beware, the load might be huge if thousands of messages are in the DB ...
-* If you want to only retrieve a channel without the default one: `/api/get_messages?channel=C?no_default_channel?timestamp=T`
+* If you want to only retrieve a channel without the default one: `/api/get_messages?channel=C?no_default_channel?message_id=I`
 
 ### Sending a new message
 

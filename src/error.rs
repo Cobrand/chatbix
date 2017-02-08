@@ -21,7 +21,9 @@ impl Into<IronResult<Response>> for Error {
         let error = self;
         let (response_string, status) = match error {
             Error(ErrorKind::ChronoParseError(parse_error),_) =>
-                (format!("{}",parse_error),status::UnprocessableEntity),
+                (format!("{}", parse_error),status::UnprocessableEntity),
+            Error(ErrorKind::ParseIntError(parse_error),_) =>
+                (format!("{}", parse_error),status::UnprocessableEntity),
             Error(ErrorKind::InvalidCredentials, _) =>
                 ("invalid username or password".to_owned(),status::UnprocessableEntity),
             Error(ErrorKind::InvalidAuthKey, _) =>
@@ -70,5 +72,6 @@ error_chain! {
     foreign_links {
         ChronoParseError(::chrono::ParseError);
         BodyparserError(BodyError);
+        ParseIntError(::std::num::ParseIntError);
     }
 }
