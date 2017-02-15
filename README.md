@@ -5,7 +5,6 @@
 ```sh
 $ echo 'DATABASE_URL=postgres://dbuser:dbpassword@dbaddress/chatbox' > .env
 $ echo 'LISTEN_URL=0.0.0.0:PORT' >> .env
-$ rustup override nightly
 $ cargo run --bin chatbix
 ```
 
