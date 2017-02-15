@@ -5,23 +5,21 @@ authors = ["Cobrand <cobrandw@gmail.com>"]
 
 [dependencies]
 iron = "^0.5"
-staticfile = {git = "https://github.com/iron/staticfile.git"}
-# TODO: once staticfile has this (https://github.com/iron/staticfile/issues/94) issue solved,
-# use crates.io instead of master
+staticfile = "^0.4"
 mount = "^0.3"
 router = "^0.5"
-bodyparser = "0.5"
+bodyparser = "0.6"
 urlencoded = "0.5"
 persistent = "0.3"
 
 rust-crypto = "^0.2"
 rand = "^0.3"
 
-serde = "^0.8"
-serde_derive = "^0.8"
-serde_json = "^0.8"
+serde = "^0.9"
+serde_derive = "^0.9"
+serde_json = "^0.9"
 
-error-chain = "^0.8"
+error-chain = "^0.9"
 dotenv = "^0.8"
 chrono = {version = "^0.2", features = ["serde"]}
 r2d2 = "^0.7"

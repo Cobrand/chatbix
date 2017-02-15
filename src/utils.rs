@@ -4,7 +4,7 @@ use error::*;
 use serde::Serializer;
 use chrono::{UTC,Timelike};
 
-pub fn timestamp_ser<S>(time: &NaiveDateTime, serializer: &mut S) -> StdResult<(), S::Error> where S: Serializer {
+pub fn timestamp_ser<S>(time: &NaiveDateTime, serializer: S) -> StdResult<S::Ok, S::Error> where S: Serializer {
     serializer.serialize_i64(time.timestamp())
 }
 
