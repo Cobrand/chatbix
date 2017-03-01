@@ -21,6 +21,8 @@ struct JsonSuccess {
     messages: Option<Vec<Message>>,
     #[serde(skip_serializing_if="Option::is_none")]
     auth_key: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    fulltext: Option<Vec<Match>>,
 }
 
 impl JsonSuccess {
@@ -30,33 +32,36 @@ impl JsonSuccess {
             messages: None,
             users_connected: None,
             auth_key: None,
+            fulltext: None,
         }
     }
 
     pub fn with_messages(v: Vec<Message>) -> JsonSuccess {
         JsonSuccess {
-            status: "success",
             messages: Some(v),
-            users_connected: None,
-            auth_key: None,
+            ..Self::empty()
         }
     }
 
     pub fn with_messages_and_connected(v: Vec<Message>, users: Vec<ConnectedUser>) -> JsonSuccess {
         JsonSuccess {
-            status: "success",
             messages: Some(v),
             users_connected: Some(users),
-            auth_key: None,
+            ..Self::empty()
         }
     }
 
     pub fn with_auth_key(auth_key: String) -> JsonSuccess {
         JsonSuccess {
-            status: "success",
-            messages: None,
-            users_connected: None,
             auth_key: Some(auth_key),
+            ..Self::empty()
+        }
+    }
+
+    pub fn with_fulltext(res: Vec<Match>) -> JsonSuccess {
+        JsonSuccess {
+            fulltext: Some(res),
+            ..Self::empty()
         }
     }
 
@@ -234,4 +239,25 @@ pub fn logout<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Respo
         Some(p) => chatbix_try!(chatbix.logout(p.username.as_str(), p.auth_key.as_str())),
     };
     Ok(Response::with((status::Ok,JsonSuccess::empty().to_string())))
+}
+
+#[derive(Debug, Deserialize)]
+struct FulltextPayload {
+    query: String,
+    limit: u32,
+}
+
+pub fn fulltext_search<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)
+    -> IronResult<Response>
+    where Chatbix<I>: ChatbixInterface
+{
+    let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<FulltextPayload>>()
+        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
+    let login_payload = chatbix_try!(login_payload);
+    let res = match login_payload.as_ref() {
+        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
+        Some(p) => chatbix_try!(chatbix.fulltext_search(&p.query, p.limit)),
+    };
+    Ok(Response::with((status::Ok,
+                       JsonSuccess::with_fulltext(res).to_string())))
 }

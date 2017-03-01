@@ -41,6 +41,16 @@ pub trait ChatbixInterface {
 
     /// return auth_key
     fn login(&self, username: &str, password: &str) -> Result<String>;
+
+    /// Do a fulltext search on all the messages
+    fn fulltext_search(&self, query: &str, limit: u32) -> Result<Vec<Match>>;
+}
+
+#[derive(Debug, Serialize)]
+pub struct Match {
+    pub user: String,
+    pub message: String,
+    pub rank: f32,
 }
 
 pub struct Chatbix<Connection> {
@@ -229,5 +239,20 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
             },
             None => bail!(ErrorKind::InvalidCredentials),
         }
+    }
+
+    fn fulltext_search(&self, query: &str, limit: u32) -> Result<Vec<Match>> {
+        let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
+        let rows = pg.query("select author, content, ts_rank(tsv, query) as rank
+                             from chat_messages,
+                                  to_tsquery($1) as query
+                             where tsv @@ query
+                             order by rank desc
+                             limit $2", &[&query, &limit]).unwrap();
+        Ok(rows.iter().map(|r| Match {
+            user: r.get("author"),
+            message: r.get("content"),
+            rank: r.get("rank"),
+        }).collect())
     }
 }
