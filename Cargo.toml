@@ -5,7 +5,7 @@ authors = ["Cobrand <cobrandw@gmail.com>"]
 
 [dependencies]
 iron = "^0.5"
-staticfile = "^0.4"
+staticfile = {version = "^0.4", features = ["cache"]}
 mount = "^0.3"
 router = "^0.5"
 bodyparser = "0.6"
