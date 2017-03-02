@@ -24,6 +24,8 @@ impl Into<IronResult<Response>> for Error {
                 (format!("{}", parse_error),status::UnprocessableEntity),
             Error(ErrorKind::ParseIntError(parse_error),_) =>
                 (format!("{}", parse_error),status::UnprocessableEntity),
+            Error(ErrorKind::EmptyQuery, _) =>
+                ("query is empty or not specified".to_owned(), status::UnprocessableEntity),
             Error(ErrorKind::InvalidCredentials, _) =>
                 ("invalid username or password".to_owned(),status::UnprocessableEntity),
             Error(ErrorKind::InvalidAuthKey, _) =>
@@ -60,6 +62,7 @@ macro_rules! chatbix_try {
 
 error_chain! {
     errors {
+        EmptyQuery
         InvalidCredentials
         InvalidAuthKey
         UsernameInUse

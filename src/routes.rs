@@ -241,23 +241,27 @@ pub fn logout<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)-> IronResult<Respo
     Ok(Response::with((status::Ok,JsonSuccess::empty().to_string())))
 }
 
-#[derive(Debug, Deserialize)]
-struct FulltextPayload {
-    query: String,
-    limit: u32,
-}
-
 pub fn fulltext_search<I>(req: &mut Request, chatbix: Arc<Chatbix<I>>)
     -> IronResult<Response>
     where Chatbix<I>: ChatbixInterface
 {
-    let login_payload : Result<_> = req.get_ref::<bodyparser::Struct<FulltextPayload>>()
-        .map_err(|e| Error::from_kind(ErrorKind::BodyparserError(e)));
-    let login_payload = chatbix_try!(login_payload);
-    let res = match login_payload.as_ref() {
-        None => return Error::from_kind(ErrorKind::NoJsonBodyDetected).into(),
-        Some(p) => chatbix_try!(chatbix.fulltext_search(&p.query, p.limit)),
+    let (query, limit) = match req.get_ref::<UrlEncodedQuery>() {
+        Ok(hashmap) => {
+            match (hashmap.get("query"), hashmap.get("limit")) {
+                (Some(query),limit) => 
+                    (query.get(0).unwrap().clone(), 
+                     limit.and_then(|l| l.get(0))
+                          .and_then(|l| l.parse().ok())
+                          .unwrap_or(100)),
+                _ => return Error::from_kind(ErrorKind::EmptyQuery).into(),
+            }
+        },
+        Err(UrlDecodingError::EmptyQuery) => 
+            return Error::from_kind(ErrorKind::EmptyQuery).into(),
+        Err(UrlDecodingError::BodyError(body_error)) => 
+            return Err(IronError::new(body_error,(status::BadRequest))),
     };
+    let res = chatbix_try!(chatbix.fulltext_search(&query, limit));
     Ok(Response::with((status::Ok,
                        JsonSuccess::with_fulltext(res).to_string())))
 }

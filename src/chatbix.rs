@@ -4,6 +4,7 @@ use super::user::{ConnectedUser,ConnectedUsers,CachedUsers,UserConnectionStatus}
 use chrono::NaiveDateTime;
 use crypto::digest::Digest;
 use crypto::sha2::Sha512;
+use std::cmp::max;
 use super::utils::now;
 
 use error::*;
@@ -43,7 +44,7 @@ pub trait ChatbixInterface {
     fn login(&self, username: &str, password: &str) -> Result<String>;
 
     /// Do a fulltext search on all the messages
-    fn fulltext_search(&self, query: &str, limit: u32) -> Result<Vec<Match>>;
+    fn fulltext_search(&self, query: &str, limit: i64) -> Result<Vec<Match>>;
 }
 
 #[derive(Debug, Serialize)]
@@ -241,7 +242,8 @@ impl ChatbixInterface for Chatbix<Pool<PgConnection>> {
         }
     }
 
-    fn fulltext_search(&self, query: &str, limit: u32) -> Result<Vec<Match>> {
+    fn fulltext_search(&self, query: &str, limit: i64) -> Result<Vec<Match>> {
+        let limit = max(limit, 0);
         let pg : PooledConnection<_> = try!(self.connection.get().map_err(|_| Error::from_kind(ErrorKind::DatabaseBusy)));
         let rows = pg.query("select author, content, ts_rank(tsv, query) as rank
                              from chat_messages,
