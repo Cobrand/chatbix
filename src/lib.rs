@@ -46,7 +46,8 @@ pub fn run_pg() {
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
     let manager = PostgresConnectionManager::new(database_url,TlsMode::None).expect("Failed to establish connection to postgres instance");
-    let pg_pool = r2d2::Pool::new(r2d2::Config::default(),manager).unwrap();
+    let pg_pool_config = r2d2::Config::builder().pool_size(15).min_idle(Some(3)).build();
+    let pg_pool = r2d2::Pool::new(pg_pool_config, manager).unwrap();
     let chatbix = Chatbix::new(pg_pool);
     handler::handler(chatbix);
 }
